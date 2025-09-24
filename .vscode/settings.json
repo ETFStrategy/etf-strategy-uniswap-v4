@@ -1,3 +1,72 @@
 {
-  "solidity.formatter": "forge"
+    // Configuration for Solidity files
+    "[solidity]": {
+        "editor.wordWrap": "off",
+        "editor.rulers": [120, 150],
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": true
+    },
+    
+    // General editor configuration
+    "editor.wordWrap": "off",
+    "editor.rulers": [80, 120, 150],
+    
+    // Formatter configuration for Solidity
+    "solidity.formatter": "prettier",
+    "prettier.printWidth": 120,
+    "prettier.tabWidth": 4,
+    "prettier.useTabs": false,
+    
+    // Disable line length warnings
+    "solidity.validation": {
+        "enable": true,
+        "targets": ["remix", "truffle", "foundry"]
+    },
+    
+    // File associations
+    "files.associations": {
+        "*.sol": "solidity"
+    },
+    
+    // Exclude folders from file explorer and search
+    "files.exclude": {
+        "**/node_modules/**": true,
+        "**/out/**": true,
+        "**/cache/**": true,
+        "**/.git/**": true
+    },
+    
+    // Exclude from search
+    "search.exclude": {
+        "**/lib/**": true,
+        "**/node_modules/**": true,
+        "**/out/**": true,
+        "**/cache/**": true,
+        "**/.git/**": true,
+        "**/broadcast/**": true
+    },
+    
+    // Exclude from file watcher (improves performance)
+    "files.watcherExclude": {
+        "**/lib/**": true,
+        "**/node_modules/**": true,
+        "**/out/**": true,
+        "**/cache/**": true,
+        "**/.git/**": true,
+        "**/broadcast/**": true
+    },
+    
+    // Exclude from source control view
+    "scm.defaultViewMode": "tree",
+    "git.ignoreLimitWarning": true,
+    
+    // Git-specific configurations to hide submodules
+    "git.ignoreSubmodules": true,
+    "git.detectSubmodules": false,
+    "git.detectSubmodulesLimit": 0,
+    
+    // Additional SCM exclusions for submodules in lib folder
+    "scm.repositories.maxRepositories": 1,
+    "scm.repositories.visible": 1
 }

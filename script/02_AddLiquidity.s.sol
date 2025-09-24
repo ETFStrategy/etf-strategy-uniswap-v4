@@ -19,7 +19,7 @@ contract AddLiquidityScript is BaseScript, LiquidityHelpers {
     // --- Configure These ---
     /////////////////////////////////////
 
-    uint24 lpFee = 3000; // 0.30%
+    uint24 lpFee = 0; // 0.0%
     int24 tickSpacing = 60;
 
     // --- liquidity position configuration --- //

@@ -1,167 +1,247 @@
-# Uniswap v4 Hook Template
+# ETF Strategy Uniswap V4 Hook
 
-**A template for writing Uniswap v4 Hooks 🦄**
+**An ETF-focused tax strategy implementation using Uniswap V4 Hooks 🦄💰**
 
-### Get Started
+### Overview
 
-This template provides a starting point for writing Uniswap v4 Hooks, including a simple example and preconfigured test environment. Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
+This project implements a sophisticated tax strategy hook for Uniswap V4 that enables ETF-like fee collection and distribution. The hook automatically collects fees on swaps and distributes them between a strategy treasury (for ETF operations) and a development address (for operational costs).
 
-[![Use this Template](https://img.shields.io/badge/Use%20this%20Template-101010?style=for-the-badge&logo=github)](https://github.com/uniswapfoundation/v4-template/generate)
+### Key Features
 
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
+- **Automated Fee Collection**: 10% fee on all swaps through the pool
+- **Dual Fee Distribution**: 90% to strategy treasury, 10% to dev operations
+- **ETH Conversion**: Automatically converts fee tokens to ETH for simplified treasury management
+- **Strategy Token Integration**: Custom ERC20 token with treasury management capabilities
+- **Comprehensive Testing**: Full test suite covering all fee scenarios and edge cases
 
-<details>
-<summary>Updating to v4-template:latest</summary>
+### Project Structure
 
-This template is actively maintained -- you can update the v4 dependencies, scripts, and helpers:
+```
+src/
+├── contracts/
+│   ├── StandardToken.sol          # Basic ERC20 token implementation
+│   └── StrategyTokenSample.sol    # ETF strategy token with treasury integration
+├── hooks/
+│   └── TaxStrategyHook.sol        # Main hook implementing tax strategy
+└── mocks/
+    ├── MockTaxStrategy.sol        # Mock implementation for testing
+    └── MockWETH.sol              # Mock WETH for test scenarios
 
-```bash
-git remote add template https://github.com/uniswapfoundation/v4-template
-git fetch template
-git merge template/main <BRANCH> --allow-unrelated-histories
+script/
+├── 00_DeployHook.s.sol           # Deploy the tax strategy hook
+├── 01_CreatePoolAndAddLiquidity.s.sol # Initialize pool with liquidity
+├── 02_AddLiquidity.s.sol         # Add additional liquidity
+└── 03_Swap.s.sol                 # Execute swaps to test fee collection
+
+test/
+├── TaxStrategyHookTest.t.sol     # Comprehensive hook testing
+└── utils/                        # Testing utilities and helpers
 ```
 
-</details>
+### Core Components
+
+#### TaxStrategyHook
+- Implements `afterSwap` hook to collect fees
+- Collects 10% fee on all swap amounts
+- Automatically converts fees to ETH
+- Distributes 90% to strategy treasury, 10% to dev address
+- Supports fee address updates by current fee recipient
+
+#### StrategyTokenSample
+- ERC20 token with integrated treasury functionality
+- Includes `addFees()` method for receiving ETH from hooks
+- Supports token burning and treasury address updates
+- Designed for ETF strategy token implementations
+
+### Quick Start
+
+1. **Install Dependencies**
+```bash
+forge install
+```
+
+2. **Run Tests**
+```bash
+forge test -vv
+```
+
+3. **Deploy Locally**
+```bash
+# Start local anvil node
+anvil
+
+# Deploy hook and setup pool
+forge script script/00_DeployHook.s.sol --rpc-url http://localhost:8545 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --broadcast
+
+# Create pool and add initial liquidity
+forge script script/01_CreatePoolAndAddLiquidity.s.sol --rpc-url http://localhost:8545 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --broadcast
+
+# Test swaps and fee collection
+forge script script/03_Swap.s.sol --rpc-url http://localhost:8545 --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d --broadcast
+```
+
+### Fee Strategy Details
+
+The tax strategy hook implements the following fee structure:
+
+- **Collection Rate**: 10% of swap amount (`HOOK_FEE_PERCENTAGE = 10000`)
+- **Strategy Treasury**: 90% of collected fees (`STRATEGY_FEE_PERCENTAGE = 90000`)
+- **Development Fund**: 10% of collected fees (remainder)
+- **Fee Denominator**: 100,000 for precise percentage calculations
+
+#### Fee Flow
+1. User executes swap through Uniswap V4 pool
+2. Hook collects 10% fee from the swap amount
+3. If fee token is not ETH, hook converts it to ETH via internal swap
+4. 90% of ETH fee sent to strategy token's treasury via `addFees()`
+5. 10% of ETH fee sent to designated fee recipient address
+
+### Configuration
+
+Update the following parameters in your deployment scripts:
+
+1. **Token Addresses** (`BaseScript.sol`):
+   - Update `token0` and `token1` addresses for your target network
+   - Ensure proper ETH/Token pairing
+
+2. **Liquidity Amounts** (`CreatePoolAndAddLiquidity.s.sol`, `AddLiquidity.s.sol`):
+   - Adjust `token0Amount` and `token1Amount` for initial liquidity
+   - Consider price impact and slippage
+
+3. **Swap Parameters** (`Swap.s.sol`):
+   - Modify `amountIn` and `amountOutMin` for testing
+   - Adjust for different swap scenarios
+
+4. **Fee Recipients**:
+   - Set appropriate treasury address in strategy token constructor
+   - Configure dev fee recipient address in hook constructor
+
 
 ### Requirements
 
-This template is designed to work with Foundry (stable). If you are using Foundry Nightly, you may encounter compatibility issues. You can update your Foundry installation to the latest stable version by running:
+- **Foundry** (stable version recommended)
+- **Solidity 0.8.26** (required for Uniswap V4 transient storage)
+- **Node.js** (optional, for additional tooling)
 
-```
+Update Foundry to the latest stable version:
+```bash
 foundryup
 ```
 
-To set up the project, run the following commands in your terminal to install dependencies and run the tests:
+### Production Deployment
 
-```
-forge install
-forge test
-```
+#### Using Keystore (Recommended)
 
-### Local Development
-
-Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/) locally. Scripts are available in the `script/` directory, which can be used to deploy hooks, create pools, provide liquidity and swap tokens. The scripts support both local `anvil` environment as well as running them directly on a production network.
-
-### Executing locally with using **Anvil**:
-
-1. Start Anvil (or fork a specific chain using anvil):
-
+1. **Add Private Key to Keystore**:
 ```bash
-anvil
+cast wallet import <WALLET_NAME> --interactive
 ```
 
-or
-
-```bash
-anvil --fork-url <YOUR_RPC_URL>
-```
-
-2. Execute scripts:
-
-```bash
-forge script script/00_DeployHook.s.sol \
-    --rpc-url http://localhost:8545 \
-    --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
-    --broadcast
-```
-
-### Using **RPC URLs** (actual transactions):
-
-:::info
-It is best to not store your private key even in .env or enter it directly in the command line. Instead use the `--account` flag to select your private key from your keystore.
-:::
-
-### Follow these steps if you have not stored your private key in the keystore:
-
-<details>
-
-1. Add your private key to the keystore:
-
-```bash
-cast wallet import <SET_A_NAME_FOR_KEY> --interactive
-```
-
-2. You will prompted to enter your private key and set a password, fill and press enter:
-
-```
-Enter private key: <YOUR_PRIVATE_KEY>
-Enter keystore password: <SET_NEW_PASSWORD>
-```
-
-You should see this:
-
-```
-`<YOUR_WALLET_PRIVATE_KEY_NAME>` keystore was saved successfully. Address: <YOUR_WALLET_ADDRESS>
-```
-
-::: warning
-Use ```history -c``` to clear your command history.
-:::
-
-</details>
-
-1. Execute scripts:
-
+2. **Deploy with Keystore**:
 ```bash
 forge script script/00_DeployHook.s.sol \
     --rpc-url <YOUR_RPC_URL> \
-    --account <YOUR_WALLET_PRIVATE_KEY_NAME> \
+    --account <WALLET_NAME> \
     --sender <YOUR_WALLET_ADDRESS> \
     --broadcast
 ```
 
-You will prompted to enter your wallet password, fill and press enter:
+#### Using Environment Variables
 
+1. **Set Environment Variables**:
+```bash
+export PRIVATE_KEY=<your_private_key>
+export RPC_URL=<your_rpc_url>
 ```
-Enter keystore password: <YOUR_PASSWORD>
+
+2. **Deploy**:
+```bash
+forge script script/00_DeployHook.s.sol \
+    --rpc-url $RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --broadcast
 ```
 
-### Key Modifications to note:
+### Testing
 
-1. Update the `token0` and `token1` addresses in the `BaseScript.sol` file to match the tokens you want to use in the network of your choice for sepolia and mainnet deployments.
-2. Update the `token0Amount` and `token1Amount` in the `CreatePoolAndAddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-3. Update the `token0Amount` and `token1Amount` in the `AddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-4. Update the `amountIn` and `amountOutMin` in the `Swap.s.sol` file to match the amount of tokens you want to swap.
+The project includes comprehensive tests covering:
 
+- Fee collection mechanics
+- ETH conversion functionality  
+- Treasury and dev fee distribution
+- Edge cases and error conditions
+- Integration with Uniswap V4 pool manager
+
+Run tests with different verbosity levels:
+```bash
+# Basic test run
+forge test
+
+# Detailed output
+forge test -vv
+
+# Very detailed with traces
+forge test -vvv
+
+# Specific test contract
+forge test --match-contract TaxStrategyHookTest
+```
 
 ### Troubleshooting
 
-<details>
+#### Common Issues
 
-#### Permission Denied
+**Permission Denied During Installation**
+- Ensure GitHub SSH keys are properly configured
+- Follow [GitHub SSH setup guide](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
 
-When installing dependencies with `forge install`, Github may throw a `Permission Denied` error
-
-Typically caused by missing Github SSH keys, and can be resolved by following the steps [here](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
-
-Or [adding the keys to your ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent), if you have already uploaded SSH keys
-
-#### Anvil fork test failures
-
-Some versions of Foundry may limit contract code size to ~25kb, which could prevent local tests to fail. You can resolve this by setting the `code-size-limit` flag
-
-```
+**Anvil Fork Test Failures**
+- Some Foundry versions limit contract code size to ~25kb
+- Solution: Start anvil with increased code size limit
+```bash
 anvil --code-size-limit 40000
 ```
 
-#### Hook deployment failures
+**Hook Deployment Failures**
+1. **Verify Hook Flags**: Ensure `getHookPermissions()` returns correct flags matching `HookMiner.find()` requirements
+2. **Salt Mining Issues**: 
+   - In tests: Deployer must match between `new Hook{salt: salt}()` and `HookMiner.find(deployer, ...)`
+   - In scripts: Deployer must be CREATE2 Proxy: `0x4e59b44847b379578588920cA78FbF26c0B4956C`
+3. **Update Foundry**: Ensure latest version with `foundryup`
 
-Hook deployment failures are caused by incorrect flags or incorrect salt mining
+**Fee Collection Issues**
+- Verify pool has sufficient liquidity for fee token -> ETH conversion
+- Check that fee recipient addresses are properly configured
+- Ensure strategy token treasury address is set correctly
 
-1. Verify the flags are in agreement:
-   - `getHookCalls()` returns the correct flags
-   - `flags` provided to `HookMiner.find(...)`
-2. Verify salt mining is correct:
-   - In **forge test**: the _deployer_ for: `new Hook{salt: salt}(...)` and `HookMiner.find(deployer, ...)` are the same. This will be `address(this)`. If using `vm.prank`, the deployer will be the pranking address
-   - In **forge script**: the deployer must be the CREATE2 Proxy: `0x4e59b44847b379578588920cA78FbF26c0B4956C`
-     - If anvil does not have the CREATE2 deployer, your foundry may be out of date. You can update it with `foundryup`
-
-</details>
+**Gas Estimation Failures**
+- Increase gas limit in deployment scripts
+- Use `--with-gas-price` flag for better gas estimation
+- Consider using `--legacy` flag for older networks
 
 ### Additional Resources
 
-- [Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
-- [v4-periphery](https://github.com/uniswap/v4-periphery)
-- [v4-core](https://github.com/uniswap/v4-core)
-- [v4-by-example](https://v4-by-example.org)
+- [Uniswap V4 Documentation](https://docs.uniswap.org/contracts/v4/overview)
+- [V4 Core Repository](https://github.com/uniswap/v4-core)
+- [V4 Periphery Repository](https://github.com/uniswap/v4-periphery)
+- [V4 Examples and Tutorials](https://v4-by-example.org)
+- [Foundry Documentation](https://book.getfoundry.sh/)
+- [Solidity Documentation](https://docs.soliditylang.org/)
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Acknowledgments
+
+- Uniswap Foundation for V4 architecture and templates
+- OpenZeppelin for secure contract implementations
+- Foundry team for excellent development tooling
